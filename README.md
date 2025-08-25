@@ -24,7 +24,7 @@ Then open http://localhost:3000
 
 ✅ Features Done
 
-    ⚡ Next.js 13+ App Router with layout system + route groups
+    ⚡ Next.js 15+ App Router with layout system + route groups
     🎨 Pre-configured shadcn/ui with TailwindCSS
     🛠️ Developer-friendly setup: ESLint + Prettier
 

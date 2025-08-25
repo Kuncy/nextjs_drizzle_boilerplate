@@ -1,3 +1,7 @@
+🚀 Next.js Boilerplate
+
+A modern starter template for building full-stack apps with Next.js App Router, shadcn/ui, and a developer-friendly setup.
+
 🚀 Getting Started
 
 Clone the repo and install dependencies:

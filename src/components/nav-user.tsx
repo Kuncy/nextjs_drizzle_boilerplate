@@ -1,4 +1,5 @@
 "use client";
+import { signOut, useSession } from "next-auth/react";
 
 import {
   BadgeCheck,
@@ -36,6 +37,9 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+  const logoutAction = () => {
+    signOut({ redirect: true, callbackUrl: "/" });
+  };
 
   return (
     <SidebarMenu>
@@ -98,7 +102,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={logoutAction}>
               <LogOut />
               Log out
             </DropdownMenuItem>

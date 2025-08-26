@@ -1,75 +1,122 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-export function RegisterForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+import { zodResolver } from "@hookform/resolvers/zod";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { CreateUserInput, createUserSchema } from "@/lib/user-schema";
+
+export const RegisterForm = () => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const methods = useForm<CreateUserInput>({
+    resolver: zodResolver(createUserSchema),
+  });
+
+  const {
+    handleSubmit,
+    register,
+    formState: { errors },
+  } = methods;
+
+  const onSubmitHandler: SubmitHandler<CreateUserInput> = async (values) => {
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/register", {
+        method: "POST",
+        body: JSON.stringify(values),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+
+        if (Array.isArray(errorData.errors) && errorData.errors.length > 0) {
+          errorData.errors.forEach((error: any) => {
+            // toast.error(error.message);
+          });
+
+          return;
+        }
+
+        // toast.error(errorData.message);
+        return;
+      }
+
+      signIn(undefined, { callbackUrl: "/" });
+    } catch (error: any) {
+      //toast.error(error.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const input_style =
+    "form-control block w-full px-4 py-5 text-sm font-normal text-gray-700 bg-white bg-clip-padding border border-solid border-gray-300 rounded transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none";
+
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome!</CardTitle>
-          <CardDescription>Register</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form>
-            <div className="grid gap-6">
-              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t"></div>
-              <div className="grid gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="email">Name</Label>
-                  <Input id="name" name="name" placeholder="Name" required />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    <a
-                      href="#"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a>
-                  </div>
-                  <Input id="password" type="password" required />
-                </div>
-                <Button type="submit" className="w-full">
-                  Login
-                </Button>
-              </div>
-              <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <a href="#" className="underline underline-offset-4">
-                  Sign up
-                </a>
-              </div>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-      <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+    <form onSubmit={handleSubmit(onSubmitHandler)}>
+      <div className="mb-6">
+        <input
+          {...register("name")}
+          placeholder="Name"
+          className={`${input_style}`}
+        />
+        {errors["name"] && (
+          <span className="text-red-500 text-xs pt-1 block">
+            {errors["name"]?.message as string}
+          </span>
+        )}
       </div>
-    </div>
+      <div className="mb-6">
+        <input
+          type="email"
+          {...register("email")}
+          placeholder="Email address"
+          className={`${input_style}`}
+        />
+        {errors["email"] && (
+          <span className="text-red-500 text-xs pt-1 block">
+            {errors["email"]?.message as string}
+          </span>
+        )}
+      </div>
+      <div className="mb-6">
+        <input
+          type="password"
+          {...register("password")}
+          placeholder="Password"
+          className={`${input_style}`}
+        />
+        {errors["password"] && (
+          <span className="text-red-500 text-xs pt-1 block">
+            {errors["password"]?.message as string}
+          </span>
+        )}
+      </div>
+      <div className="mb-6">
+        <input
+          type="password"
+          {...register("passwordConfirm")}
+          placeholder="Confirm Password"
+          className={`${input_style}`}
+        />
+        {errors["passwordConfirm"] && (
+          <span className="text-red-500 text-xs pt-1 block">
+            {errors["passwordConfirm"]?.message as string}
+          </span>
+        )}
+      </div>
+      <button
+        type="submit"
+        style={{ backgroundColor: `${submitting ? "#ccc" : "#3446eb"}` }}
+        className="inline-block px-7 py-4 bg-blue-600 text-white font-medium text-sm leading-snug uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out w-full"
+        disabled={submitting}
+      >
+        {submitting ? "loading..." : "Sign Up"}
+      </button>
+    </form>
   );
-}
+};

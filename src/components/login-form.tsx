@@ -1,73 +1,140 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useActionState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { signIn } from "next-auth/react";
+import { LoginUserInput, loginUserSchema } from "@/lib/user-schema";
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+export const LoginForm = () => {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+
+  const methods = useForm<LoginUserInput>({
+    resolver: zodResolver(loginUserSchema),
+  });
+
+  const {
+    reset,
+    handleSubmit,
+    register,
+    formState: { errors },
+  } = methods;
+
+  const onSubmitHandler: SubmitHandler<LoginUserInput> = async (values) => {
+    try {
+      setSubmitting(true);
+
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: values.email,
+        password: values.password,
+        redirectTo: callbackUrl,
+      });
+
+      setSubmitting(false);
+
+      if (!res?.error) {
+        //toast.success("successfully logged in");
+        router.push(callbackUrl);
+      } else {
+        reset({ password: "" });
+        const message = "invalid email or password";
+        // toast.error(message);
+        setError(message);
+      }
+    } catch (error: any) {
+      //toast.error(error.message);
+      setError(error.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const input_style =
+    "form-control block w-full px-4 py-5 text-sm font-normal text-gray-700 bg-white bg-clip-padding border border-solid border-gray-300 rounded transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none";
+
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>Login</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form>
-            <div className="grid gap-6">
-              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t"></div>
-              <div className="grid gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    <a
-                      href="#"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a>
-                  </div>
-                  <Input id="password" type="password" required />
-                </div>
-                <Button type="submit" className="w-full">
-                  Login
-                </Button>
-              </div>
-              <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <a href="#" className="underline underline-offset-4">
-                  Sign up
-                </a>
-              </div>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-      <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+    <form onSubmit={handleSubmit(onSubmitHandler)}>
+      {error && (
+        <p className="text-center bg-red-300 py-4 mb-6 rounded">{error}</p>
+      )}
+      <div className="mb-6">
+        <input
+          type="email"
+          {...register("email")}
+          placeholder="Email address"
+          className={`${input_style}`}
+        />
+        {errors["email"] && (
+          <span className="text-red-500 text-xs pt-1 block">
+            {errors["email"]?.message as string}
+          </span>
+        )}
       </div>
-    </div>
+      <div className="mb-6">
+        <input
+          type="password"
+          {...register("password")}
+          placeholder="Password"
+          className={`${input_style}`}
+        />
+        {errors["password"] && (
+          <span className="text-red-500 text-xs pt-1 block">
+            {errors["password"]?.message as string}
+          </span>
+        )}
+      </div>
+      <button
+        type="submit"
+        style={{ backgroundColor: `${submitting ? "#ccc" : "#3446eb"}` }}
+        className="inline-block px-7 py-4 bg-blue-600 text-white font-medium text-sm leading-snug uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out w-full"
+        disabled={submitting}
+      >
+        {submitting ? "loading..." : "Sign In"}
+      </button>
+
+      <div className="flex items-center my-4 before:flex-1 before:border-t before:border-gray-300 before:mt-0.5 after:flex-1 after:border-t after:border-gray-300 after:mt-0.5">
+        <p className="text-center font-semibold mx-4 mb-0">OR</p>
+      </div>
+
+      <a
+        className="px-7 py-2 text-white font-medium text-sm leading-snug uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out w-full flex justify-center items-center mb-3"
+        style={{ backgroundColor: "#3b5998" }}
+        onClick={() => signIn("google", { callbackUrl })}
+        role="button"
+      >
+        <Image
+          className="pr-2"
+          src="/images/google.svg"
+          alt=""
+          style={{ height: "2rem" }}
+          width={35}
+          height={35}
+        />
+        Continue with Google
+      </a>
+      <a
+        className="px-7 py-2 text-white font-medium text-sm leading-snug uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out w-full flex justify-center items-center"
+        style={{ backgroundColor: "#55acee" }}
+        onClick={() => signIn("github", { callbackUrl })}
+        role="button"
+      >
+        <Image
+          className="pr-2"
+          src="/images/github.svg"
+          alt=""
+          width={40}
+          height={40}
+        />
+        Continue with GitHub
+      </a>
+    </form>
   );
-}
+};

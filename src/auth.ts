@@ -1,34 +1,103 @@
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-// Your own logic for dealing with plaintext password strings; be careful!
-import { saltAndHashPassword } from "@/utils/password"
- 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+import NextAuth from "next-auth";
+import github from "next-auth/providers/github";
+import google from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcrypt";
+import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { db } from "./index";
+import * as schema from "./db/schema";
+import { eq } from "drizzle-orm";
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  session: { strategy: "jwt" },
+  adapter: DrizzleAdapter(db),
+  pages: {
+    signIn: "/login",
+  },
   providers: [
-    Credentials({
+    github({ allowDangerousEmailAccountLinking: true }),
+    google({ allowDangerousEmailAccountLinking: true }),
+    CredentialsProvider({
+      name: "Sign in",
+      id: "credentials",
       credentials: {
-        name: {},
-        email: {},
-        password: {},
+        email: {
+          label: "Email",
+          type: "email",
+          placeholder: "example@example.com",
+        },
+        password: { label: "Password", type: "password" },
       },
-      authorize: async (credentials) => {
-        let user = null
- 
-        // logic to salt and hash password
-        const pwHash = saltAndHashPassword(credentials.password)
- 
-        // logic to verify if the user exists
-        user = await getUserFromDb(credentials.email, pwHash)
- 
-        if (!user) {
-          // No user found, so this is their first attempt to login
-          // Optionally, this is also the place you could do a user registration
-          throw new Error("Invalid credentials.")
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials.password) {
+          return null;
         }
- 
-        // return user object with their profile data
-        return user
+
+        // Fetch first user matching the email
+        const users = await db
+          .select()
+          .from(schema.users)
+          .where(eq(schema.users.email, credentials.email))
+          .limit(1)
+          .execute(); // returns an array
+
+        const user = users[0]; // get the first (and only) user
+
+        if (!user) return null;
+
+        // Verify password
+        const isValid = await bcrypt.compare(
+          String(credentials.password),
+          user.password
+        );
+
+        if (!isValid) return null;
+
+        // Return the user object for NextAuth
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          randomKey: "Hey cool",
+        };
       },
     }),
   ],
-})
+  callbacks: {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const paths = ["/", "/client-side", "/api/session"];
+      const isProtected = paths.some((path) =>
+        nextUrl.pathname.startsWith(path)
+      );
+
+      if (isProtected && !isLoggedIn) {
+        const redirectUrl = new URL("/login", nextUrl.origin);
+        redirectUrl.searchParams.append("callbackUrl", nextUrl.href);
+        return Response.redirect(redirectUrl);
+      }
+      return true;
+    },
+    jwt: ({ token, user }) => {
+      if (user) {
+        const u = user as unknown as any;
+        return {
+          ...token,
+          id: u.id,
+          randomKey: u.randomKey,
+        };
+      }
+      return token;
+    },
+    session(params) {
+      return {
+        ...params.session,
+        user: {
+          ...params.session.user,
+          id: params.token.id as string,
+          randomKey: params.token.randomKey,
+        },
+      };
+    },
+  },
+});

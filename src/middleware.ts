@@ -8,14 +8,12 @@ export async function middleware(req: NextRequest) {
     secret: process.env.AUTH_SECRET,
   });
 
-  // If no session, redirect to login
   if (!session) {
     const url = req.nextUrl.clone();
     url.pathname = "auth/login";
     return NextResponse.redirect(url);
   }
 
-  // If authenticated, continue
   return NextResponse.next();
 }
 

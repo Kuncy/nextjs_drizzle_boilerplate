@@ -1,6 +1,7 @@
 import "../globals.css";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { Toaster } from "@/components/ui/sonner"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -50,6 +51,7 @@ export default function DashboardLayout({
               </div>
             </header>
             <main>{children}</main>
+            <Toaster />
           </SidebarInset>
         </SidebarProvider>
       </body>

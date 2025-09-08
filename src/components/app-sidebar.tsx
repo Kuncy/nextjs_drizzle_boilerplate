@@ -26,13 +26,9 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-// This is sample data.
+import { useSession } from "next-auth/react";
+
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   teams: [
     {
       name: "Acme Inc",
@@ -52,23 +48,15 @@ const data = {
   ],
   navMain: [
     {
-      title: "Playground",
+      title: "Verwaltung",
       url: "#",
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
+          title: "Benutzer",
+          url: "/admin/users",
+        }
       ],
     },
     {
@@ -157,6 +145,8 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session, status } = useSession();
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -167,7 +157,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        {status === "loading" && <p>Loading session...</p>}
+        {status === "unauthenticated" && <p>Not logged in</p>}
+        {status === "authenticated" && (
+          <>
+            <NavUser user={{
+              name: session.user?.name,
+              email: session.user?.email,
+              avatar: "/avatars/shadcn.jpg",
+            }} />
+          </>
+        )}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

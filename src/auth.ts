@@ -64,40 +64,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
-      const paths = ["/", "/client-side", "/api/session"];
-      const isProtected = paths.some((path) =>
-        nextUrl.pathname.startsWith(path)
-      );
+  authorized({ auth, request: { nextUrl } }) {
+    const isLoggedIn = !!auth?.user;
+    const paths = ["/", "/client-side", "/api/session"];
+    const isProtected = paths.some((path) =>
+      nextUrl.pathname.startsWith(path)
+    );
 
-      if (isProtected && !isLoggedIn) {
-        const redirectUrl = new URL("/login", nextUrl.origin);
-        redirectUrl.searchParams.append("callbackUrl", nextUrl.href);
-        return Response.redirect(redirectUrl);
-      }
-      return true;
-    },
-    jwt: ({ token, user }) => {
-      if (user) {
-        const u = user as unknown as any;
-        return {
-          ...token,
-          id: u.id,
-          randomKey: u.randomKey,
-        };
-      }
-      return token;
-    },
-    session(params) {
-      return {
-        ...params.session,
-        user: {
-          ...params.session.user,
-          id: params.token.id as string,
-          randomKey: params.token.randomKey,
-        },
-      };
-    },
+    if (isProtected && !isLoggedIn) {
+      const redirectUrl = new URL("/login", nextUrl.origin);
+      redirectUrl.searchParams.append("callbackUrl", nextUrl.href);
+      return Response.redirect(redirectUrl);
+    }
+    return true;
   },
+
+  async jwt({ token, user }) {
+    if (user) {
+      const u = user as any;
+
+      token.id = u.id;
+      token.name = u.name;
+      token.email = u.email;
+    }
+    return token;
+  },
+
+  async session({ session, token }) {
+    return {
+      ...session,
+      user: {
+        ...session.user,
+        id: token.id as string,
+        name: token.name as string,
+        email: token.email as string,
+      },
+    };
+  }
+}
 });

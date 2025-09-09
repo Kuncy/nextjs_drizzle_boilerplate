@@ -52,6 +52,7 @@ const data = {
       url: "#",
       icon: SquareTerminal,
       isActive: true,
+      acl: 'admin',
       items: [
         {
           title: "Benutzer",

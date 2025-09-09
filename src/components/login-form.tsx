@@ -4,8 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
-import { signIn } from "next-auth/react";
 import { LoginUserInput, loginUserSchema } from "@/lib/user-schema";
+import { AuthService } from "@/services/auth.service";
+
 import {
   Card,
   CardHeader,
@@ -37,22 +38,13 @@ export const LoginForm = () => {
   const onSubmitHandler: SubmitHandler<LoginUserInput> = async (values) => {
     try {
       setSubmitting(true);
-      const res = await signIn("credentials", {
-        redirect: false,
-        email: values.email,
-        password: values.password,
-        redirectTo: callbackUrl,
-      });
-      setSubmitting(false);
 
-      if (!res?.error) {
-        router.push(callbackUrl);
-      } else {
-        reset({ password: "" });
-        setError("Invalid email or password");
-      }
+      await AuthService.login(values.email, values.password, callbackUrl);
+
+      router.push(callbackUrl);
     } catch (err: any) {
-      setError(err.message);
+      reset({ password: "" });
+      setError(err.message || "Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -107,32 +99,7 @@ export const LoginForm = () => {
           <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? "Loading..." : "Login"}
           </Button>
-
-          <Button
-            variant="outline"
-            className="w-full"
-            type="button"
-            onClick={() => signIn("google", { callbackUrl })}
-          >
-            Login with Google
-          </Button>
-
-          <Button
-            variant="outline"
-            className="w-full"
-            type="button"
-            onClick={() => signIn("github", { callbackUrl })}
-          >
-            Login with GitHub
-          </Button>
         </form>
-
-        <div className="mt-4 text-center text-sm">
-          Don&apos;t have an account?{" "}
-          <a href="#" className="underline">
-            Sign up
-          </a>
-        </div>
       </CardContent>
     </Card>
   );

@@ -31,6 +31,7 @@ Then open http://localhost:3000
     🔑 Auth.js integration for authentication
 
 🚧 Coming Soon (TODO)
+
     🐳 Dockerization for containerized deployment
     👥 Role-based access control (RBAC) for users
  

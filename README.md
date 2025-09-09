@@ -27,13 +27,12 @@ Then open http://localhost:3000
     ⚡ Next.js 15+ App Router with layout system + route groups
     🎨 Pre-configured shadcn/ui with TailwindCSS
     🛠️ Developer-friendly setup: ESLint + Prettier
-
-🚧 Coming Soon (TODO)
-
     🗄️ Drizzle ORM with migrations & type-safe queries
     🔑 Auth.js integration for authentication
 
-🔮 Future Tasks
-
+🚧 Coming Soon (TODO)
     🐳 Dockerization for containerized deployment
     👥 Role-based access control (RBAC) for users
+ 
+
+
